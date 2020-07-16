@@ -56,7 +56,6 @@ class MakeGitPixelArt
     end
   end
 
-  # 2005-04-07T22:13:13.
   def create_commits_for_date(date, commits_per_day)
     commits_per_day.times do |i|
       time = date.to_time + 3600 * 10 + i
