@@ -9,7 +9,7 @@ class MakeGitPixelArt
     @pixel_art_file_path = pixel_art_file_path
     @git_repo_path = git_repo_path
     if Pathname(@git_repo_path).exist?
-      STDERR.puts "Repository already exists: #{@git_repo_path}"
+      warn "Repository already exists: #{@git_repo_path}"
       exit 1
     end
   end
@@ -17,6 +17,10 @@ class MakeGitPixelArt
   def read_pixel_art_file
     @lines = Pathname(@pixel_art_file_path).readlines.map(&:chomp)
     @max_len = @lines.map(&:size).max
+    if @lines.size != 7
+      warn "Expected 7 line image, but it is #{@lines.size}"
+      exit 1
+    end
   end
 
   def find_previous_saturday
@@ -79,7 +83,7 @@ class MakeGitPixelArt
 end
 
 unless ARGV.size == 2
-  STDERR.puts "Usage: #{$0} pixel_art_file.txt git_repo_to_create"
+  warn "Usage: #{$0} pixel_art_file.txt git_repo_to_create"
   exit
 end
 
