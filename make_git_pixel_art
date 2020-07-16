@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+require "date"
+require "time"
+
+class MakeGitPixelArt
+  def initialize(pixel_art_file_path, git_repo_path)
+    @pixel_art_file_path = pixel_art_file_path
+    @git_repo_path = git_repo_path
+    if Pathname(@git_repo_path).exist?
+      STDERR.puts "Repository already exists: #{@git_repo_path}"
+      exit 1
+    end
+  end
+
+  def read_pixel_art_file
+    @lines = Pathname(@pixel_art_file_path).readlines.map(&:chomp)
+    @max_len = @lines.map(&:size).max
+  end
+
+  def find_previous_saturday
+    date = Date.today
+    until date.saturday?
+      date -= 1
+    end
+    @previous_saturday = date
+  end
+
+  def translate_pixel_art_into_dates
+    @commit_dates = []
+    7.times do |line_no|
+      @max_len.times do |row_no|
+        should_have_dot = (@lines[line_no][row_no] == "#")
+        next unless should_have_dot
+        puts "We need #{line_no} / #{row_no}"
+        day_ago = 6 - line_no
+        weeks_ago = @max_len - 1 - row_no
+        date = @previous_saturday - day_ago - 7 * weeks_ago
+        @commit_dates << date
+      end
+    end
+    @commit_dates.sort!
+  end
+
+  def create_repository
+    Pathname(@git_repo_path).mkpath
+    Dir.chdir(@git_repo_path) do
+      system "git init"
+    end
+  end
+
+  def create_commit_at_time(time_string)
+    Dir.chdir(@git_repo_path) do
+      system "git commit -m 'Pixel Art' --date '#{time_string}' --allow-empty"
+    end
+  end
+
+  # 2005-04-07T22:13:13.
+  def create_commits_for_date(date, commits_per_day)
+    commits_per_day.times do |i|
+      time = date.to_time + 3600 * 10 + i
+      create_commit_at_time(time.iso8601)
+    end
+  end
+
+  def create_all_commits(commits_per_day)
+    @commit_dates.each do |date|
+      create_commits_for_date(date, commits_per_day)
+    end
+  end
+
+  def call
+    read_pixel_art_file
+    find_previous_saturday
+    translate_pixel_art_into_dates
+    create_repository
+    create_all_commits(20)
+  end
+end
+
+unless ARGV.size == 2
+  STDERR.puts "Usage: #{$0} pixel_art_file.txt git_repo_to_create"
+  exit
+end
+
+MakeGitPixelArt.new(*ARGV).call
